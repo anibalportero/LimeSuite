@@ -1,4 +1,4 @@
-FROM ${ARCH}/debian:jessie as builder
+FROM ${ARCH}/ubuntu:xenial as builder
 
 # INSTALL BUILD DEPENDENCIES
 RUN apt-get update && apt-get install -y \
@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
 	libpng-dev \
 	python3 \
 	python3-pip \
-	libstdc++-4.9-dev \
+	libstdc++-5-dev \
 	libi2c-dev \
 	&& pip3 install requests \
 	&& apt-get clean \
@@ -33,7 +33,7 @@ COPY . src
 RUN cd src; mkdir /work/stage \
 	&& cmake --debug-output -DCMAKE_STAGING_PREFIX=/work/stage; make; make install
 
-FROM ${ARCH}/debian:jessie
+FROM ${ARCH}/ubuntu:xenial
 
 # INSTALL RUNTIME DEPENDENCIES
 RUN apt-get update; apt-get install -y \
