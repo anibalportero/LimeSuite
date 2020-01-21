@@ -17,19 +17,3 @@ build-amd64-glibc:
     QEMU_ARCH: "x86_64"
     LIBC: "glibc"
     CROSS: ""
-
-build-arm32v6-musl:
-  extends: .build-dockerfile
-  variables:
-    ARCH: "arm32v6"
-    QEMU_ARCH: "arm"
-    LIBC: "musl"
-    CROSS: "arm-linux-musleabihf"
-
-build-arm32v5-glibc:
-  extends: .build-dockerfile
-  variables:
-    ARCH: "arm32v5"
-    QEMU_ARCH: "arm"
-    LIBC: "glibc"
-    CROSS: "arm-linux-gnueabi"
