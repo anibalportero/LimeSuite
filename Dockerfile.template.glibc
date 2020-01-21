@@ -1,4 +1,4 @@
-FROM ${ARCH}/debian:stretch as builder
+FROM ${ARCH}/debian:jessie as builder
 
 # INSTALL BUILD DEPENDENCIES
 RUN apt-get update && apt-get install -y \
@@ -33,7 +33,7 @@ COPY . src
 RUN cd src; mkdir /work/stage \
 	&& cmake --debug-output -DCMAKE_STAGING_PREFIX=/work/stage; make; make install
 
-FROM ${ARCH}/debian:stretch
+FROM ${ARCH}/debian:jessie
 
 # INSTALL RUNTIME DEPENDENCIES
 RUN apt-get update; apt-get install -y \

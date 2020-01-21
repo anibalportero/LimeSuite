@@ -5,8 +5,6 @@ set -e
 JOBS=${JOBS:-\
 	amd64:x86_64:musl: \
 	amd64:x86_64:glibc: \
-	arm32v6:arm:musl:arm-linux-musleabihf \
-	arm32v5:arm:glibc:arm-linux-gnueabi \
 }
 
 cat > .gitlab-ci.yml << EOF
