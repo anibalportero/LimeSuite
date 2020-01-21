@@ -1,0 +1,71 @@
+FROM alpine as qemu
+
+RUN wget -O /qemu-${QEMU_ARCH}-static https://github.com/multiarch/qemu-user-static/releases/download/v4.1.0-1/qemu-${QEMU_ARCH}-static; \
+	chmod a+x /qemu-${QEMU_ARCH}-static
+
+FROM ${ARCH}/alpine:3.10 as sysroot
+
+COPY --from=qemu /qemu-${QEMU_ARCH}-static /usr/bin/
+
+# INSTALL BUILD DEPENDENCIES
+RUN apk update && apk --force add \
+    git \
+    build-base \
+    util-linux \
+    binutils \
+    grep \
+    bash-completion \
+    findutils \
+    coreutils \
+    usbutils \
+    gcc \
+    abuild \
+    cmake \
+    g++ \
+    sqlite \
+    sqlite-dev \
+    libusb \
+    libusb-dev \
+    fftw \
+    fftw-dev \
+    libpng \
+    libpng-dev \
+    libvncserver-dev \
+    ffmpeg-dev \
+    python3 \
+    libstdc++ \
+    && pip3 install requests \
+    && rm -rf /var/cache/apk/*
+
+FROM registry.gitlab.com/pantacor/platform-tools/docker-${LIBC}-cross-${QEMU_ARCH}:master as crossbuilder
+COPY --from=sysroot / /sysroot-${QEMU_ARCH}
+
+WORKDIR /work
+
+COPY . src
+
+# INSTALL MAKE DEPENDENCIES
+RUN apt-get update; apt-get install -y \
+	cmake \
+	cmake-data \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists
+
+# CROSSBUILD
+RUN cd src; mkdir /work/stage \
+	&& cmake --debug-output -DCMAKE_TOOLCHAIN_FILE=cmake-cross/${LIBC}-${ARCH}; make; make install
+
+FROM ${ARCH}/alpine:3.10
+
+COPY --from=qemu /qemu-${QEMU_ARCH}-static /usr/bin/
+
+# INSTALL RUNTIME DEPENDENCIES
+RUN apk update && apk add \
+	libstdc++ \
+	libusb \
+	&& rm -rf /var/cache/apk/*
+
+# COPY BUILD ARTIFACTS
+COPY --from=crossbuilder /work/stage /usr/local
+
+CMD [ "/sbin/init" ]

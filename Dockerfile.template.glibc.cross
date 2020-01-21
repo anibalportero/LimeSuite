@@ -1,0 +1,70 @@
+FROM debian:stretch as qemu
+
+RUN apt-get update && apt-get install -y wget && apt-get clean && rm -rf /var/lib/apt/lists
+
+RUN wget -O /qemu-${QEMU_ARCH}-static https://github.com/multiarch/qemu-user-static/releases/download/v4.1.0-1/qemu-${QEMU_ARCH}-static; \
+	chmod a+x /qemu-${QEMU_ARCH}-static
+
+FROM ${ARCH}/debian:stretch as sysroot
+
+COPY --from=qemu /qemu-${QEMU_ARCH}-static /usr/bin/
+
+# INSTALL BUILD DEPENDENCIES
+RUN apt-get update && apt-get install -y \
+	git \
+	build-essential \
+	bash-completion \
+	findutils \
+	coreutils \
+	usbutils \
+	gcc \
+	cmake \
+	g++ \
+	libsqlite3-dev \
+	libusb-1.0-0-dev \
+	libfftw3-dev \
+	libpng-dev \
+	python3 \
+	python3-pip \
+	libstdc++-6-dev \
+	libi2c-dev \
+	&& pip3 install requests \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists
+
+FROM registry.gitlab.com/pantacor/platform-tools/docker-${LIBC}-cross-${QEMU_ARCH}:master as crossbuilder
+COPY --from=sysroot / /sysroot-${QEMU_ARCH}
+
+WORKDIR /work
+
+COPY . src
+
+# INSTALL MAKE DEPENDENCIES
+RUN apt-get update; apt-get install -y \
+	cmake \
+	cmake-data \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists
+
+# CROSSBUILD
+RUN cd src; mkdir /work/stage \
+	&& ./rerelln.sh /sysroot-${QEMU_ARCH}/usr/lib/${CROSS}/ /sysroot-${QEMU_ARCH} \
+	&& cmake --debug-output -DCMAKE_TOOLCHAIN_FILE=cmake-cross/${LIBC}-${ARCH}; make; make install
+
+FROM ${ARCH}/debian:stretch
+
+COPY --from=qemu /qemu-${QEMU_ARCH}-static /usr/bin/
+
+# INSTALL RUNTIME DEPENDENCIES
+RUN apt-get update; apt-get install -y \
+	libusb-1.0-0 \
+	libfftw3-3 \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists
+
+# COPY BUILD ARTIFACTS
+COPY --from=crossbuilder /work/stage /usr/local
+
+RUN ldconfig
+
+CMD [ "/lib/systemd/systemd" ]

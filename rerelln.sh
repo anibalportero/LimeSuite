@@ -4,12 +4,17 @@
 # needed to make a debian/ubuntu install a valid sysroot
 
 target=$1
+sysroot=$2
 
-echo doing re re ln on $target
+for sl in `ls -d $target/*`; do
+	if [ -h $sl ]; then
+		echo doing re re ln of $target on root $sysroot
 
-src=`ls -l $target | awk '{print $11}'`
-link=`ls -l $target | awk '{print $9}'`
+		src=`ls -l $sl | awk '{print $11}'`
+		link=`ls -l $sl | awk '{print $9}'`
 
-rm -f $link
-ln -vs --relative $src $link
+		ln -vsf --relative $sysroot$src $link
+	fi
+done
+
 
