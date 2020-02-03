@@ -23,3 +23,7 @@ Find build and install instructions for Lime Suite on the wiki:
 The discourse forum is a good way to find help and discuss topics:
 
 * https://discourse.myriadrf.org/
+
+## CI/CD
+
+This project is based on Pantavisor component CI template. Check out its readme document [here](https://gitlab.com/pantacor/ci/component-ci-template).
