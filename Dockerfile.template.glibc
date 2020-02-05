@@ -1,0 +1,50 @@
+FROM ${ARCH}/ubuntu:xenial as builder
+
+# INSTALL BUILD DEPENDENCIES
+RUN apt-get update && apt-get install -y \
+	git \
+	build-essential \
+	bash-completion \
+	findutils \
+	coreutils \
+	usbutils \
+	gcc \
+	cmake \
+	cmake-data \
+	g++ \
+	libsqlite3-dev \
+	libusb-1.0-0-dev \
+	libfftw3-dev \
+	libpng-dev \
+	python3 \
+	python3-pip \
+	libstdc++-5-dev \
+	libi2c-dev \
+	&& pip3 install requests \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists
+
+# COPY SOURCE CODE
+WORKDIR /work
+
+COPY . src
+
+# BUILD
+RUN cd src; mkdir /work/stage \
+	&& cmake --debug-output -DCMAKE_STAGING_PREFIX=/work/stage; make; make install
+
+FROM ${ARCH}/ubuntu:xenial
+
+# INSTALL RUNTIME DEPENDENCIES
+RUN apt-get update; apt-get install -y \
+	libusb-1.0-0 \
+	libfftw3-3 \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists
+
+# COPY BUILD ARTIFACTS
+COPY --from=builder /work/stage /usr/local
+
+RUN ldconfig
+
+CMD [ "/lib/systemd/systemd" ]

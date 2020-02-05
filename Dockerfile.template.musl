@@ -1,0 +1,54 @@
+FROM ${ARCH}/alpine:3.10 as builder
+
+# INSTALL BUILD DEPENDENCIES
+RUN apk update && apk --force add \
+    git \
+    build-base \
+    util-linux \
+    binutils \
+    grep \
+    bash-completion \
+    findutils \
+    coreutils \
+    usbutils \
+    gcc \
+    abuild \
+    cmake \
+	cmake-data \
+    g++ \
+    sqlite \
+    sqlite-dev \
+    libusb \
+    libusb-dev \
+    fftw \
+    fftw-dev \
+    libpng \
+    libpng-dev \
+    libvncserver-dev \
+    ffmpeg-dev \
+    python3 \
+    libstdc++ \
+    && pip3 install requests \
+    && rm -rf /var/cache/apk/*
+
+# COPY SOURCE CODE
+WORKDIR /work
+
+COPY . src
+
+# BUILD
+RUN cd src; mkdir /work/stage \
+    && cmake --debug-output -DCMAKE_STAGING_PREFIX=/work/stage; make; make install
+
+FROM ${ARCH}/alpine:3.10
+
+# INSTALL RUNTIME DEPENDENCIES
+RUN apk update && apk add \
+	libstdc++ \
+	libusb \
+	&& rm -rf /var/cache/apk/*
+
+# COPY BUILD ARTIFACTS
+COPY --from=builder /work/stage /usr/local
+
+CMD [ "/sbin/init" ]
